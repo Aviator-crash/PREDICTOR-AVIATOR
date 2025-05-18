@@ -1,0 +1,682 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictor Aviator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Impact', 'Haettenschweiler', 'Arial Black', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(45deg, #2a0033, #006600, #330000, #1a1a1a);
+            animation: gradient 15s ease infinite;
+            color: #ffffff;
+            line-height: 1.6;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            border-bottom: 2px solid #ff3333;
+            z-index: 1000;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        @keyframes glow {
+            0% { text-shadow: 0 0 10px #33cc33; }
+            50% { text-shadow: 0 0 20px #ff3333; }
+            100% { text-shadow: 0 0 10px #33cc33; }
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+
+        .nav-links li {
+            margin-left: 20px;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 18px;
+            position: relative;
+        }
+
+        .nav-links a:hover::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #33cc33;
+            left: 0;
+            bottom: -5px;
+            animation: underline 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            text-shadow: 0 0 10px #ff3333;
+        }
+
+        @keyframes underline {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        .hamburger {
+            display: none;
+            font-size: 30px;
+            cursor: pointer;
+            color: #ffffff;
+        }
+
+        .sidenav {
+            height: 100%;
+            width: 0;
+            position: fixed;
+            z-index: 1001;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.9);
+            overflow-x: hidden;
+            transition: 0.5s;
+            padding-top: 60px;
+        }
+
+        .sidenav a {
+            padding: 8px 8px 8px 32px;
+            text-decoration: none;
+            font-size: 25px;
+            color: #ffffff;
+            display: block;
+            transition: 0.3s;
+        }
+
+        .sidenav a:hover {
+            color: #33cc33;
+            text-shadow: 0 0 10px #ff3333;
+        }
+
+        .sidenav .closebtn {
+            position: absolute;
+            top: 0;
+            right: 25px;
+            font-size: 36px;
+            margin-left: 50px;
+        }
+
+        /* Hero Section */
+        #inicio {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(45deg, #4b0082, #006600, #800000);
+            animation: heroGradient 20s ease infinite;
+            position: relative;
+        }
+
+        #inicio::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1;
+        }
+
+        #inicio > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes heroGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #inicio h1 {
+            font-size: 48px;
+            text-shadow: 0 0 10px #33cc33;
+            animation: glow 2s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+
+        #inicio p {
+            font-size: 24px;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+
+        .cta-button {
+            background: #ff3333;
+            color: #ffffff;
+            padding: 15px 30px;
+            border: 2px solid #33cc33;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background: #33cc33;
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #33cc33;
+        }
+
+        .guarantee {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* General Section Styles */
+        section {
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        section h2 {
+            font-size: 36px;
+            text-shadow: 0 0 10px #33cc33;
+            margin-bottom: 40px;
+        }
+
+        /* Ventajas */
+        #ventajas ul {
+            list-style: none;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #ventajas li {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        /* Planes */
+        #planes .plans-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .plan-card {
+            background: #2a2a2a;
+            border: 2px solid #ff3333;
+            width: 30%;
+            min-width: 250px;
+            padding: 20px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .plan-card:hover {
+            transform: scale(1.05) rotate(2deg);
+            box-shadow: 0 0 20px #33cc33;
+        }
+
+        .plan-card h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .plan-card p {
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        /* Casinos Compatibles */
+        #casinos .casino-text {
+            max-width: 800px;
+            margin: 0 auto 30px;
+            font-family: 'Arial Black', sans-serif;
+            font-size: 18px;
+        }
+
+        #casinos .casino-text h3 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #33cc33;
+        }
+
+        .carousel {
+            position: relative;
+            max-width: 150px;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        .carousel-inner {
+            display: flex;
+            transition: transform 0.5s ease;
+        }
+
+        .carousel-item {
+            flex: 0 0 100%;
+            width: 150px;
+            height: 150px;
+            border: 2px solid #33cc33;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .carousel-item:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 0 20px #ff3333;
+        }
+
+        .carousel-nav {
+            display: none;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 30px;
+            color: #ffffff;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .carousel-nav.prev {
+            left: -40px;
+        }
+
+        .carousel-nav.next {
+            right: -40px;
+        }
+
+        .carousel-dots {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #666;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background: #33cc33;
+        }
+
+        /* Footer */
+        footer {
+            background: #1a1a1a;
+            padding: 20px;
+            text-align: center;
+        }
+
+        footer .contact-links a {
+            color: #ffffff;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+
+        footer .contact-links a:hover {
+            color: #33cc33;
+            text-shadow: 0 0 10px #33cc33;
+        }
+
+        footer .legal a {
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        footer .legal a:hover {
+            color: #4b0082;
+            text-shadow: 0 0 10px #ff3333;
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 768px) {
+            nav .nav-links {
+                display: none;
+            }
+
+            .hamburger {
+                display: block;
+            }
+
+            #inicio h1 {
+                font-size: 36px;
+            }
+
+            #inicio p {
+                font-size: 18px;
+            }
+
+            section h2 {
+                font-size: 28px;
+            }
+
+            #casinos .casino-text {
+                font-size: 16px;
+            }
+
+            #casinos .casino-text h3 {
+                font-size: 28px;
+            }
+
+            .plan-card {
+                width: 100%;
+            }
+
+            .carousel {
+                max-width: 120px;
+            }
+
+            .carousel-item {
+                width: 120px;
+                height: 120px;
+            }
+
+            .guarantee {
+                font-size: 16px;
+                padding: 0 20px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .carousel-nav {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav>
+        <div class="logo">
+            <img src="https://static.wixstatic.com/media/1dff55_d00230056bc6454a800c31411b09e872~mv2.png" alt="Predictor Aviator Logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="#inicio">Inicio</a></li>
+            <li><a href="#ventajas">Ventajas</a></li>
+            <li><a href="#planes">Planes</a></li>
+            <li><a href="#casinos">Casinos</a></li>
+            <li><a href="#software">Software</a></li>
+        </ul>
+        <div class="hamburger" onclick="openNav()">☰</div>
+    </nav>
+
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+        <a href="#inicio">Inicio</a>
+        <a href="#ventajas">Ventajas</a>
+        <a href="#planes">Planes</a>
+        <a href="#casinos">Casinos</a>
+        <a href="#software">Software</a>
+    </div>
+
+    <!-- Hero Section -->
+    <section id="inicio">
+        <h1>¡Gana Más con Predictor Aviator!</h1>
+        <p>Maximiza tus apuestas con señales precisas. ¡Pregunta por nuestra prueba de 2 días en Telegram!</p>
+        <a href="https://t.me/miguelsignal" class="cta-button">Suscribirse Ahora</a>
+        <div class="guarantee">Si no ganas $1500/día, te devolvemos tu dinero</div>
+    </section>
+
+    <!-- Ventajas Section -->
+    <section id="ventajas">
+        <h2>Ventajas de Escogernos</h2>
+        <ul>
+            <li>Señales precisas con hasta un 97.99% de precisión.</li>
+            <li>Compatibilidad con todos los dispositivos.</li>
+            <li>Soporte 24/7 para resolver tus dudas.</li>
+            <li>Indicaciones detalladas por Telegram: pasos, % de capital, y estrategias optimizadas.</li>
+        </ul>
+    </section>
+
+    <!-- Planes Section -->
+    <section id="planes">
+        <h2>Nuestros Planes</h2>
+        <div class="plans-container">
+            <div class="plan-card">
+                <h3>Plan Básico</h3>
+                <p>$70 por 6 días</p>
+                <p>92% de precisión</p>
+                <p>Hasta $1500/día</p>
+                <p>Soporte 24/7</p>
+                <p>Compatibilidad con dispositivos</p>
+                <p>Señales diarias</p>
+                <a href="https://t.me/miguelsignal" class="cta-button">Suscribirse</a>
+            </div>
+            <div class="plan-card">
+                <h3>Plan Pro</h3>
+                <p>$140 por 13 días</p>
+                <p>94% de precisión</p>
+                <p>Hasta $2300/día</p>
+                <p>Soporte 24/7</p>
+                <p>Compatibilidad con dispositivos</p>
+                <p>Patrones mejorados</p>
+                <a href="https://t.me/miguelsignal" class="cta-button">Suscribirse</a>
+            </div>
+            <div class="plan-card">
+                <h3>Plan Premium</h3>
+                <p>$280 por 1 mes</p>
+                <p>97.99% de precisión</p>
+                <p>Hasta $2700/día</p>
+                <p>Soporte 24/7</p>
+                <p>Compatibilidad con dispositivos</p>
+                <p>Alertas prioritarias</p>
+                <a href="https://t.me/miguelsignal" class="cta-button">Suscribirse</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Casinos Compatibles Section -->
+    <section id="casinos">
+        <h2>Casinos Compatibles</h2>
+        <div class="casino-text">
+            <h3>¡Elige Tu Casino!</h3>
+            <p>Nuestro programa es compatible con los casinos en línea más populares. Al contratar cualquier plan, recibirás señales precisas para maximizar tus ganancias en todos tus casinos favoritos. ¿No ves tu casino preferido? ¡Contáctanos!</p>
+            <a href="https://t.me/miguelsignal" class="cta-button">Consultar Casino</a>
+        </div>
+        <div class="carousel" id="logo-carousel">
+            <div class="carousel-inner">
+                <div class="carousel-item"><img src="https://static.wixstatic.com/media/1dff55_a5f0efeb4dd7493fa105f729118593fa~mv2.png" alt="Casino Logo 1"></div>
+                <div class="carousel-item"><img src="https://static.wixstatic.com/media/1dff55_31a7d705902a4850b9bd76993d85b6bd~mv2.png" alt="Casino Logo 2"></div>
+                <div class="carousel-item"><img src="https://static.wixstatic.com/media/1dff55_c96befc1c964412699ac5863891c795e~mv2.jpg" alt="Casino Logo 3"></div>
+                <div class="carousel-item"><img src="https://static.wixstatic.com/media/1dff55_b827514200fa4aa085f331350486d7b6~mv2.jpg" alt="Casino Logo 4"></div>
+                <div class="carousel-item"><img src="https://static.wixstatic.com/media/1dff55_1ccbf0450b95442ab14f78baed1eecb6~mv2.webp" alt="Casino Logo 5"></div>
+            </div>
+            <div class="carousel-nav prev" onclick="moveCarousel('logo', -1)">❮</div>
+            <div class="carousel-nav next" onclick="moveCarousel('logo', 1)">❯</div>
+            <div class="carousel-dots">
+                <span class="dot active" onclick="setCarousel('logo', 0)"></span>
+                <span class="dot" onclick="setCarousel('logo', 1)"></span>
+                <span class="dot" onclick="setCarousel('logo', 2)"></span>
+                <span class="dot" onclick="setCarousel('logo', 3)"></span>
+                <span class="dot" onclick="setCarousel('logo', 4)"></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Prueba Section -->
+    <section id="software">
+        <h2>Pregunta por Nuestra Prueba de 2 Días</h2>
+        <p>Pregunta por nuestra prueba de 2 días en Telegram y descubre cómo ganar más.</p>
+        <a href="https://t.me/miguelsignal" class="cta-button">Solicitar Prueba</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>© 2025 Predictor Aviator. Todos los derechos reservados.</p>
+        <div class="contact-links">
+            <a href="https://t.me/miguelsignal">Telegram</a>
+        </div>
+        <div class="legal">
+            <a href="#">Términos y Condiciones</a>
+        </div>
+    </footer>
+
+    <script>
+        // Mobile Menu
+        function openNav() {
+            document.getElementById("mySidenav").style.width = "250px";
+        }
+
+        function closeNav() {
+            document.getElementById("mySidenav").style.width = "0";
+        }
+
+        // Smooth Scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+        // Carousel Functionality (Only for Logos)
+        const carousels = {
+            logo: { element: document.getElementById('logo-carousel'), index: 0, interval: null }
+        };
+
+        function updateCarousel(type) {
+            const carousel = carousels[type];
+            const inner = carousel.element.querySelector('.carousel-inner');
+            const dots = carousel.element.querySelectorAll('.carousel-dots .dot');
+            inner.style.transform = `translateX(-${carousel.index * 100}%)`;
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === carousel.index);
+            });
+        }
+
+        function moveCarousel(type, direction) {
+            const carousel = carousels[type];
+            const items = carousel.element.querySelectorAll('.carousel-item');
+            carousel.index = (carousel.index + direction + items.length) % items.length;
+            updateCarousel(type);
+            resetInterval(type);
+        }
+
+        function setCarousel(type, index) {
+            carousels[type].index = index;
+            updateCarousel(type);
+            resetInterval(type);
+        }
+
+        function startInterval(type) {
+            const carousel = carousels[type];
+            carousel.interval = setInterval(() => {
+                moveCarousel(type, 1);
+            }, 3000);
+        }
+
+        function resetInterval(type) {
+            const carousel = carousels[type];
+            clearInterval(carousel.interval);
+            startInterval(type);
+        }
+
+        // Initialize carousel
+        Object.keys(carousels).forEach(type => {
+            updateCarousel(type);
+            startInterval(type);
+        });
+
+        // Swipe support for mobile
+        let touchstartX = 0;
+        let touchendX = 0;
+
+        function handleSwipe(carouselId) {
+            if (touchendX < touchstartX - 50) moveCarousel(carouselId, 1);
+            if (touchendX > touchstartX + 50) moveCarousel(carouselId, -1);
+        }
+
+        document.getElementById('logo-carousel').addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        });
+
+        document.getElementById('logo-carousel').addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe('logo');
+        });
+    </script>
+</body>
+</html>
